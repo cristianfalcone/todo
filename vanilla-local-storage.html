@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Todo: Vanilla</title>
+    <link rel="stylesheet" href="node_modules/todomvc-app-css/index.css">
+</head>
+
+<body>
+    <section class="todoapp">
+        <header class="header">
+            <h1>todos</h1>
+            <input class="new-todo" placeholder="What needs to be done?" autofocus>
+        </header>
+        <section class="main">
+            <input class="toggle-all" id="toggle-all" type="checkbox">
+            <label for="toggle-all">Mark all as complete</label>
+            <ul class="todo-list"></ul>
+        </section>
+        <footer class="footer">
+            <span class="todo-count"></span>
+            <ul class="filters">
+                <li>
+                    <a href="#/" class="selected">All</a>
+                </li>
+                <li>
+                    <a href="#/active">Active</a>
+                </li>
+                <li>
+                    <a href="#/completed">Completed</a>
+                </li>
+            </ul>
+            <button class="clear-completed">Clear completed</button>
+        </footer>
+    </section>
+
+    <script>
+        (function () {
+            'use strict';
+
+            var ENTER_KEY = 13;
+            var ESCAPE_KEY = 27;
+
+            var newTodo = document.querySelector('.new-todo');
+            var toggleAll = document.querySelector('.toggle-all');
+            var todoList = document.querySelector('.todo-list');
+            var filters = document.querySelector('.filters');
+            var todoCount = document.querySelector('.todo-count');
+            var clearCompleted = document.querySelector('.clear-completed');
+
+            init();
+
+            function init() {
+                newTodo.addEventListener('keypress', newTodoKeyPressHandler);
+                toggleAll.addEventListener('change', toggleAllChangeHandler);
+                Array.prototype.forEach.call(filters.querySelectorAll('a'), function (filter) {
+                    filter.addEventListener('click', filterClickHandler);
+                });
+                clearCompleted.addEventListener('click', clearCompletedClickHandler);
+                load();
+                updateCount();
+            }
+
+            function newTodoKeyPressHandler(event) {
+                var text;
+
+                if (event.keyCode === ENTER_KEY && (text = newTodo.value.trim())) {
+                    add({text: text, completed: false});
+                    updateCount();
+                    store();
+                    newTodo.value = '';
+                }
+            }
+
+            function add(data) {
+                var todo = document.createElement('li');
+
+                if (data.completed) todo.classList.add('completed');
+                todo.innerHTML = render(data);
+                addListeners(todo);
+                todoList.appendChild(todo);
+            }
+
+            function render(todo) {
+                return (
+                    '<div class="view">' +
+                    '<input class="toggle" type="checkbox"' + (todo.completed ? 'checked' : '') + '>' +
+                    '<label>' + todo.text + '</label>' +
+                    '<button class="destroy"></button>' +
+                    '</div>' +
+                    '<input type="text" class="edit">'
+                );
+            }
+
+            function addListeners(todo) {
+                todo.querySelector('.toggle').addEventListener('change', toggleChangeHandler);
+                todo.querySelector('label').addEventListener('dblclick', labelDblCLickHandler);
+                todo.querySelector('.destroy').addEventListener('click', destroyClickHanlder);
+            }
+
+            function toggleChangeHandler(event) {
+                var checkbox = event.target;
+
+                if (checkbox.checked) {
+                    checkbox.closest('li').classList.add("completed");
+                    if (filters.querySelector('[href="#/active"].selected')) checkbox.closest('li').style.display = 'none';
+                } else {
+                    checkbox.closest('li').classList.remove("completed");
+                    if (filters.querySelector('[href="#/completed"].selected')) checkbox.closest('li').style.display = 'none';
+                }
+                updateCount();
+                store();
+            }
+
+            function updateCount() {
+                var count = todoList.querySelectorAll('li').length;
+                var countCompleted = todoList.querySelectorAll('li.completed').length;
+                var countActive = count - countCompleted;
+                
+                document.querySelector('label[for="toggle-all"]').style.display = count === 0 ? 'none' : '';
+                document.querySelector('.footer').style.display = count === 0 ? 'none' : '';
+                document.querySelector('.clear-completed').style.display = countCompleted === 0 ? 'none' : '';
+                toggleAll.checked = countCompleted === count;
+                todoCount.innerText = countActive === 1 ? countActive + ' item left' : countActive + ' items left';
+            }
+
+            function store() {
+                var todos = [];
+
+                Array.prototype.forEach.call(todoList.querySelectorAll('li'), function (todo) {
+                    todos.push({
+                        text: todo.querySelector('label').innerText,
+                        completed: todo.classList.contains('completed')
+                    });
+                });
+
+                localStorage.setItem('todos', JSON.stringify(todos));
+            }
+
+            function labelDblCLickHandler(event) {
+                var label = event.target;
+                var todo = label.closest('li');
+                var input = todo.querySelector('.edit');
+
+                input.value = label.innerText;
+                addEditListeners(input);
+                todo.classList.add('editing');
+                input.focus();
+            }
+
+            function addEditListeners(input) {
+                input.addEventListener('keydown', editKeyDownHandler);
+                input.addEventListener('keypress', editKeyPressHandler);
+                input.addEventListener('blur', editBlurHandler);
+            }
+
+            function editKeyDownHandler(event) {
+                var input = event.target;
+
+                if (event.keyCode === ESCAPE_KEY) {
+                    removeEditListeners(input);
+                    input.closest('li').classList.remove('editing');
+                }
+            }
+
+            function removeEditListeners(input) {
+                input.removeEventListener('keydown', editKeyDownHandler);
+                input.removeEventListener('keypress', editKeyPressHandler);
+                input.removeEventListener('blur', editBlurHandler);
+            }
+
+            function editKeyPressHandler(event) {
+                var input = event.target;
+
+                if (event.keyCode === ENTER_KEY) {
+                    update(input, input.value.trim());
+                }
+            }
+
+            function update(input, value) {
+                var todo = input.closest('li');
+
+                removeEditListeners(input);
+                todo.querySelector('label').innerText = value;
+                todo.classList.remove('editing');
+                store();
+            }
+
+            function editBlurHandler(event) {
+                var input = event.target;
+
+                update(input, input.value.trim());
+            }
+
+            function destroyClickHanlder(event) {
+                var todo = event.target.closest('li');
+
+                removeListeners(todo);
+                todo.parentNode.removeChild(todo);
+                updateCount();
+                store();
+            }
+
+            function removeListeners(todo) {
+                todo.querySelector('.toggle').removeEventListener('change', toggleChangeHandler);
+                todo.querySelector('label').removeEventListener('dblclick', labelDblCLickHandler);
+                todo.querySelector('.destroy').removeEventListener('click', destroyClickHanlder);
+            }
+
+            function toggleAllChangeHandler(event) {
+                var isChecked = event.target.checked;
+
+                Array.prototype.forEach.call(todoList.querySelectorAll('li'), function (todo) {
+                    todo.querySelector('.toggle').checked = isChecked;
+                    isChecked ? todo.classList.add('completed') : todo.classList.remove('completed');
+                });
+                updateCount();
+                store();
+            }
+
+            function filterClickHandler(event) {
+                var filter = event.target;
+                var name = filter.getAttribute('href');
+
+                if (name === '#/completed') {
+                    Array.prototype.forEach.call(todoList.querySelectorAll('li'), function (todo) {
+                        todo.style.display = todo.classList.contains('completed') ? '' : 'none';
+                    });
+                } else if (name === '#/active') {
+                    Array.prototype.forEach.call(todoList.querySelectorAll('li'), function (todo) {
+                        todo.style.display = todo.classList.contains('completed') ? 'none' : '';
+                    });
+                } else {
+                    Array.prototype.forEach.call(todoList.querySelectorAll('li'), function (todo) {
+                        todo.style.display = '';
+                    });
+                }
+
+                Array.prototype.forEach.call(filters.querySelectorAll('a'), function (filter) {
+                    filter.classList.remove('selected');
+                });
+
+                filter.classList.add('selected');
+            }
+
+            function clearCompletedClickHandler(event) {
+                Array.prototype.forEach.call(todoList.querySelectorAll('li.completed'), function (todo) {
+                    removeListeners(todo);
+                    todo.parentNode.removeChild(todo);
+                });
+                updateCount();
+                store();
+            }
+
+            function load() {
+                var store = localStorage.getItem('todos');
+                var todos = (store && JSON.parse(store)) || [];
+
+                todos.forEach(function (todo) {
+                    add(todo);
+                });
+            }
+        }());
+    </script>
+</body>
+
+</html>
