@@ -35,6 +35,8 @@
         </footer>
     </section>
 
+    <script src="vanilla-polyfills.js"></script>
+
     <script>
         (function () {
             'use strict';
@@ -54,9 +56,11 @@
             function init() {
                 newTodo.addEventListener('keypress', newTodoKeyPressHandler);
                 toggleAll.addEventListener('change', toggleAllChangeHandler);
-                Array.prototype.forEach.call(filters.querySelectorAll('a'), function (filter) {
-                    filter.addEventListener('click', filterClickHandler);
-                });
+                filters.querySelectorAll('a').forEach(
+                    function (filter) {
+                        filter.addEventListener('click', filterClickHandler);
+                    }
+                );
                 clearCompleted.addEventListener('click', clearCompletedClickHandler);
                 updateCount();
             }
@@ -65,7 +69,7 @@
                 var text;
 
                 if (event.keyCode === ENTER_KEY && (text = newTodo.value.trim())) {
-                    add({text: text, completed: false});
+                    add({ text: text, completed: false });
                     updateCount();
                     newTodo.value = '';
                 }
@@ -114,7 +118,7 @@
                 var count = todoList.querySelectorAll('li').length;
                 var countCompleted = todoList.querySelectorAll('li.completed').length;
                 var countActive = count - countCompleted;
-                
+
                 document.querySelector('label[for="toggle-all"]').style.display = count === 0 ? 'none' : '';
                 document.querySelector('.footer').style.display = count === 0 ? 'none' : '';
                 document.querySelector('.clear-completed').style.display = countCompleted === 0 ? 'none' : '';
@@ -193,7 +197,7 @@
             function toggleAllChangeHandler(event) {
                 var isChecked = event.target.checked;
 
-                Array.prototype.forEach.call(todoList.querySelectorAll('li'), function (todo) {
+                todoList.querySelectorAll('li').forEach(function (todo) {
                     todo.querySelector('.toggle').checked = isChecked;
                     isChecked ? todo.classList.add('completed') : todo.classList.remove('completed');
                 });
@@ -205,31 +209,41 @@
                 var name = filter.getAttribute('href');
 
                 if (name === '#/completed') {
-                    Array.prototype.forEach.call(todoList.querySelectorAll('li'), function (todo) {
-                        todo.style.display = todo.classList.contains('completed') ? '' : 'none';
-                    });
+                    todoList.querySelectorAll('li').forEach(
+                        function (todo) {
+                            todo.style.display = todo.classList.contains('completed') ? '' : 'none';
+                        }
+                    );
                 } else if (name === '#/active') {
-                    Array.prototype.forEach.call(todoList.querySelectorAll('li'), function (todo) {
-                        todo.style.display = todo.classList.contains('completed') ? 'none' : '';
-                    });
+                    todoList.querySelectorAll('li').forEach(
+                        function (todo) {
+                            todo.style.display = todo.classList.contains('completed') ? 'none' : '';
+                        }
+                    );
                 } else {
-                    Array.prototype.forEach.call(todoList.querySelectorAll('li'), function (todo) {
-                        todo.style.display = '';
-                    });
+                    todoList.querySelectorAll('li').forEach(
+                        function (todo) {
+                            todo.style.display = '';
+                        }
+                    );
                 }
 
-                Array.prototype.forEach.call(filters.querySelectorAll('a'), function (filter) {
-                    filter.classList.remove('selected');
-                });
+                filters.querySelectorAll('a').forEach(
+                    function (filter) {
+                        filter.classList.remove('selected');
+                    }
+                );
 
                 filter.classList.add('selected');
             }
 
             function clearCompletedClickHandler(event) {
-                Array.prototype.forEach.call(todoList.querySelectorAll('li.completed'), function (todo) {
-                    removeListeners(todo);
-                    todo.parentNode.removeChild(todo);
-                });
+                todoList.querySelectorAll('li.completed').forEach(
+                    function (todo) {
+                        removeListeners(todo);
+                        todo.parentNode.removeChild(todo);
+                    }
+                );
                 updateCount();
             }
         }());
